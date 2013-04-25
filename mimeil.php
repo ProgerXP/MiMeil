@@ -16,22 +16,22 @@ class MiMeilError extends Exception {
 // The main class. Each instance represents a complete message with headers,
 // attachments, body and so on. Static fields provide general customizations.
 class MiMeil {
-  //= string number for MIME header used in multipart messages
+  //= string    number for MIME header used in multipart messages
   static $mimeVersion = '1.0';
 
-  //= hash maps MIME identifiers to short friendly names
+  //= hash      maps MIME identifiers to short friendly names
   static $bodyTypes = array('text/plain' => 'text', 'text/html' => 'html');
 
-  //= string MIME type used when attachment's MIME cannot be guessed
+  //= string    MIME type used when attachment's MIME cannot be guessed
   static $defaultMIME = 'application/octet-stream';
 
-  //= string used to prefix generated MIME boundaries
+  //= string    used to prefix generated MIME boundaries
   static $boundaryPrefix = '_hello-uverse_';
 
-  //= string used in multipart messages instead of (old) message body
+  //= string    used in multipart messages instead of (old) message body
   static $mimeStub = 'Your e-mail client does not support multi-part MIME messages.';
 
-  //= hash maps file extensions to their MIME types
+  //= hash      maps file extensions to their MIME types
   static $mimeByExt = array(
     'jpeg' => 'image/jpeg', 'jpg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif',
     'bmp' => 'image/x-ms-bmp', 'svg' => 'image/svg+xml', 'ico' => 'image/vnd.microsoft.icon',
@@ -60,30 +60,31 @@ class MiMeil {
   //   skipped and that value is returned by the assigned $onEvent handler.
   // * note that $args may contain &references which must be kept intact.
   //
-  //= callable ($event, array $args)
+  //= callable  ($event, array $args)
   static $onEvent;
 
   // Routine to convert between UTF-8 and another character set.
-  //= null use ::ConvertUTF8()
-  //= callable ($charset, bool $toUTF8, $str, MiMeil $mail)
+  //= null      use ::ConvertUTF8()
+  //= callable  ($charset, bool $toUTF8, $str, MiMeil $mail)
   static $utf8Convertor;
 
-  //= has default settings
+  //= has       default settings
   static $defaults = array(
-    //= bool if set message headers will be seorted (not required for anything but neat)
+    //= bool    if set message headers will be seorted (not required for anything but neat)
     'sortHeaders' => true,
-    //= bool if set and if message contains only HTML body MiMeil will automaticalky
-    //  create plain text version by removing HTML tags and entities
+    //= bool    if set and if message contains only HTML body MiMeil will automaticalky
+    //          create plain text version by removing HTML tags and entities
     'makeTextBodyFromHTML' => true,
-    //= string Content-Transfer-Encoding to use for outgoing messages
+    //= string  Content-Transfer-Encoding to use for outgoing messages
     'bodyEncoding' => 'base64',
-    //= array of string character set identifiers to sequentially try and encode
-    //  message body to; if none could represent all symbols it contains UTF-8 is used
+    //= array of string     character set identifiers to sequentially try and encode
+    //                      message body to; if none could represent all symbols it
+    //                      contains UTF-8 is used
     'bodyCharsets' => array('iso-8859-1'),
-    //= string format to append to 'Content-Type: ...; format=XXX'
+    //= string  format to append to 'Content-Type: ...; format=XXX'
     'textBodyFormat' => 'flowed',
-    //= array of string MIME types in addition to ::$bodyTypes that message body
-    //  can be of (these are not attachments' but body's)
+    //= array of string     MIME types in addition to ::$bodyTypes that message body
+    //                      can be of (these are not attachments' but body's)
     'allowedBodyMIME' => array(),
     // Specifies valid attachment MIME types; files not matching these are removed.
     // See ParseAttachments() for the list of values.
@@ -95,17 +96,17 @@ class MiMeil {
     'headerEOLN' => "\n",
   );
 
-  //= string e-mail addresses
+  //= string    e-mail addresses
   public $from, $returnPath;
 
-  //= string message subject line
+  //= string    message subject line
   public $subject;
 
   // to/copyTo/bccTo addressee is of form [name ]e@mail OR name <e@mail> - in the first
   // form, if name is followed by a space it's converted to the second (full) form.
   public $to = array(), $copyTo = array(), $bccTo = array();
 
-  //= array of string e-mail addresses
+  //= array of string       e-mail addresses
   public $deliveryNotifications = array();
 
   // Headers listed here override standard (From, Content-Type, etc.) headers
@@ -116,31 +117,32 @@ class MiMeil {
   // Lists header names that are accepted in outgoing messages; others are removed.
   // If contains optional '-' member listed headers are removed, otherwise only
   // listed headers are kept and all others are removed.
-  //= array of string header names
+  //
+  //= array of string       header names
   public $allowedHeaders;
 
-  //= string Content-Transfer-Encoding to use for outgoing messages
+  //= string    Content-Transfer-Encoding to use for outgoing messages
   public $bodyEncoding;
 
-  //= array of string character set identifiers; see $defaults property above
+  //= array of string       character set identifiers; see $defaults property above
   public $bodyCharsets;
 
-  //= true the first charset from $bodyCharsets is used to encode the message
-  //  body even if it can't represent all of its symbols
-  //= false listed charsets are tried in turn and if none could contain all the
-  //  symbols UTF-8 is used instead
+  //= true      the first charset from $bodyCharsets is used to encode the message
+  //            body even if it can't represent all of its symbols
+  //= false     listed charsets are tried in turn and if none could contain all the
+  //            symbols UTF-8 is used instead
   public $forceBodyCharset;
 
-  // See $defaults property above for the description of these options.
+  // See ::$defaults property above for the description of these options.
   public $makeTextBodyFromHTML;
   public $allowedBodyMIME, $textBodyFormat;
   public $allowedAttachments;
   public $headerEOLN, $sortHeaders;
 
-  //= string custom command-line parameters for sendmail (last argument of PHP's mail())
+  //= string    custom command-line parameters for sendmail (last argument of PHP's mail())
   public $params;
 
-  //= string line feed sequence used outside the headers preface
+  //= string    line feed sequence used outside the headers preface
   public $eoln = "\r\n";
 
   // If set and if this message doesn't contain a text/html body all multipart/related
@@ -158,19 +160,20 @@ class MiMeil {
   //= hash
   public $mailed;
 
-  //= bool indicating if this message should be prepared and delivered or only
-  //  prepared; is initially set by Send() and SimulateSending()
+  //= bool      indicating if this message should be prepared and delivered or only
+  //            prepared; is initially set by Send() and SimulateSending()
   public $simulateSending;
 
-  //= hash of scalar with keys 'text', 'html'
+  //= hash of scalar      with keys 'text', 'html'
   protected $body = array();
 
-  //= array of hashes with keys: name, mime (attachment Content-Type), data,
-  //  headers (array), isRelated (puts attachment in multipart/related group)
+  //= array of hashes     with keys: name, mime (attachment Content-Type), data,
+  //                      headers (array), isRelated (puts attachment in
+  //                      multipart/related group)
   protected $attachments = array();
 
   // Value for X-Priority and Importance headers: 0 (low), 1 (normal), 2 (high).
-  //= integer 0-2
+  //= integer   0-2
   protected $priority = 1;
 
   /*---------------------------------------------------------------------
@@ -181,6 +184,7 @@ class MiMeil {
 
   // Encodes $str with Base-64 and splits the result using RFC 2045-compatible
   // line width and breaks.
+  //
   //= string
   static function chunkBase64($str) {
     return chunk_split(base64_encode($str));
@@ -188,6 +192,7 @@ class MiMeil {
 
   // Turns a UTF-8 string (such as a subject line) into a 7-bit ASCII safe to
   // be transmitted over the wire. Returns $str as is if it's already 7-bit safe.
+  //
   //= string
   static function mangleUTF8($str) {
     if (!isset($str[0]) or utf8_decode($str) === $str) {
@@ -210,12 +215,14 @@ class MiMeil {
   }
 
   // Constructs plain text representation of $html string (always given as UTF-8).
-  //= string with stripped tags and entities
+  //
+  //= string    with stripped tags and entities
   static function textFromHTML($html) {
     return html_entity_decode(strip_tags($html), ENT_QUOTES, 'utf-8');
   }
 
   // Checks if $str conforms to common wildcard pattern (with '*' and '?').
+  //
   //= bool
   static function matchWildcard($wildcard, $str, $caseSensitive = true) {
     $caseSensitive = $caseSensitive ? 0 : FNM_CASEFOLD;
@@ -252,7 +259,7 @@ class MiMeil {
   // they all are replaced with spaces. Since tab is a control symbol they also
   // become spaces. Useful for removing unexpected symbols from subjects and addresses.
   //
-  //= string with no symbols with code below 32 (space)
+  //= string    with no symbols with code below 32 (space)
   static function oneLiner($str) {
     $str = trim($str);
     for ($i = 0; isset($str[$i]); ++$i) { ord($str[$i]) < 32 and $str[$i] = ' '; }
@@ -317,7 +324,7 @@ class MiMeil {
   // Extracts e-mail address from a format produced by NormAddress() such as
   // "Name" <mail@example.com>.
   //
-  //= string e-mail address alone like 'mail@example.com'
+  //= string    e-mail address alone like 'mail@example.com'
   static function extractFrom($addr) {
     $head = strtok(static::normAddress($addr), '<');
     $tail = strtok('>');
@@ -330,9 +337,11 @@ class MiMeil {
   // it's a file name to which an index might be appended if it already exists.
   // Directories are created as necessary with 0775 perms.
   //
-  //* $prefix string - location of the new .eml file.
-  //* $eml string - solid message with all headers and data prepared for relaying.
-  //= integer number of bytes written
+  //* $prefix string      - location of the new .eml file.
+  //* $eml string         - complete message with all headers and data prepared for
+  //                        submission to a mail relay.
+  //
+  //= integer   number of bytes written
   static function saveTo($prefix, $eml) {
     $path = strpbrk(substr($prefix, -1), '\\/') ? $prefix : dirname($prefix);
 
@@ -568,10 +577,11 @@ class MiMeil {
   | INSTANCE METHODS
   |--------------------------------------------------------------------*/
 
-  //* $to string, array - one or more recipient e-mail addresses.
-  //* $subject string - the subject line.
-  //* $body string plain text body, hash - message bodies in different formats
-  //  like 'html' and 'text' (see ::$bodyTypes for details).
+  //* $to string, array   - one or more recipient e-mail addresses.
+  //* $subject string     - the subject line.
+  //* $body string        plain text body,
+  //        hash          message bodies in different formats like 'html' and
+  //                      'text' (see ::$bodyTypes for details)
   function __construct($to, $subject, $body = array()) {
     $this->to = (array) $to;
     $this->subject = $subject;
@@ -587,8 +597,8 @@ class MiMeil {
   // Requires that ::$onEvent is set to an external routine. See this property's
   // description for details.
   //
-  //= mixed whatever last called event's handler has returned
-  //= null if there were no handlers or all have returned a === null value
+  //= mixed     whatever last called event's handler has returned
+  //= null      if there were no handlers or all have returned a === null value
   function fire($event, $args) {
     if ($func = static::$onEvent) {
       return call_user_func($func, $event, is_array($args) ? $args : array($args));
@@ -598,7 +608,9 @@ class MiMeil {
   }
 
   // Gets or sets message priority - an integer from 0 (low) to 2 (high) inclusive.
-  //= integer, $this
+  //
+  //= integer
+  //= $this
   function priority($level = null) {
     if ($level === null) {
       return $this->priority;
@@ -626,6 +638,7 @@ class MiMeil {
   //? $this->body(array('html' => '...', 'text/plain' => '...'))
   //    // set multiple bodies at once; removes all currently assigned bodies
   //    //=> $this
+  //
   function body($newOrType = array(), $body = null) {
     if (is_array($newOrType)) {
       $norm = array();
@@ -658,15 +671,17 @@ class MiMeil {
   }
 
   // Adds an attachment to this message.
-  //* $name string - attachment name visible to the recipient.
-  //* $data string - raw file data (binary-safe).
-  //* $mime string, null - if unset is determined by $name's extension (see MimeByExt()).
+  //
+  //* $name string        - attachment name visible to the recipient.
+  //* $data string        - raw file data (binary-safe).
+  //* $mime string, null  - if unset is determined by $name's extension with ->MimeByExt().
   //* $headers hash of string - headers for multipart MIME message to include for
   //  this file along with standard Content-Disposition and others generated by MiMeil.
-  //* $isRelated bool - if set attachment is considered "related" to the HTML body
+  //* $isRelated bool     - if set attachment is considered "related" to the HTML body
   //  of this message (if set, see also $this->skipRelatedAttIfNoHtmlBody). This
   //  means it's a decorative media like illustration or background that isn't listed
   //  under normal Attachments list of the mail agent.
+  //
   function attach($name, $data, $mime = null, $headers = array(), $isRelated = false) {
     $mime === null and $mime = $this->mimeByExt(strrchr($name, '.'));
     $mime = strtolower($mime);
@@ -675,16 +690,17 @@ class MiMeil {
   }
 
   // Shortcut for attaching a file related to this message's HTML body. See Attach().
+  //
   //= $this
   function attachRelated($name, $data, $mime = null, $headers = array()) {
-    return Attach($name, $data, $mime, $headers, true);
+    return $this->attach($name, $data, $mime, $headers, true);
   }
 
   // Gets an attachment by its name. If $field is null returns all information as
   // an array, otherwise returns that particular field which can be one of these:
   // name (string), mime (string), data (string), headers (array), isRelated (bool).
   //
-  //= mixed attachment info according to $field, null if $name isn't attached
+  //= mixed     attachment info according to $field, null if $name isn't attached
   function attachment($name, $field = 'data') {
     if (isset($this->attachments[$name])) {
       return $field ? $this->attachments[$name][$field] : $this->attachments[$name];
@@ -693,7 +709,9 @@ class MiMeil {
 
   // If $new is an array clears current attachments and sets them to $new,
   // otherwise returns an array with all current message attachments.
-  //= $this, array
+  //
+  //= array
+  //= $this
   function attachments($new = null) {
     if (is_array($new)) {
       $this->clearAttachments();
@@ -722,7 +740,7 @@ class MiMeil {
     }
   }
 
-  //= array of string currently attached file names
+  //= array of string       currently attached file names
   function attachmentNames() {
     return array_keys($this->attachments);
   }
@@ -760,14 +778,14 @@ class MiMeil {
   //
   // After calling this object's properties are modified depending on the settings.
   //
-  //= hash final normalized message info
+  //= hash      final normalized message info
   function simulateSending() {
     return $this->dispatch(true);
   }
 
   // Initiates message transmission. Returns whatever was returned by the last
   // 'send' event listener (see also Fire()).
-  //= hash final normalized message info
+  //= hash      final normalized message info
   protected function dispatch($simulate) {
     $this->simulateSending = $simulate;
     $this->mailed = array('subject' => null, 'headers' => null,
@@ -855,7 +873,7 @@ class MiMeil {
   // Removes message bodies of unallowed MIME types. Constructs plain/text body
   // from text/html if needed.
   //
-  //= hash like 'html' => '<html>...', 'text' => ...
+  //= hash      like 'html' => '<html>...', 'text' => ...
   function &PrepareBody($bodies) {
     $allowed = $this->allowedBodyMIME;
 
@@ -880,6 +898,7 @@ class MiMeil {
 
   // Join bodies into one string using a generated MIME boundary. If there's just
   // one body no boundary is required and thus it's skipped.
+  //
   //= string
   function &BuildBody($bodies, array &$headers) {
     if (!$bodies) { throw new MiMeilError('No MiMeil bodies when sending e-mail.'); }
@@ -979,6 +998,7 @@ class MiMeil {
   }
 
   // Joins all atatchments into one encoded data string using a generated MIME boundary.
+  //
   //= string
   function buildAttachments(array $files, array &$headers, $mime = 'multipart/mixed') {
     $boundary = $this->generateMimeBoundaryFor($files);
@@ -1046,6 +1066,7 @@ class MiMeil {
   }
 
   // Normalizes $this->allowedAttachments value into an array; see Transmit().
+  //
   //= array
   function parseAllowedAttachments($allowed) {
     switch ($allowed) {
@@ -1073,7 +1094,7 @@ class MiMeil {
   // until it locates the one that could represent all symbols used in $body.
   // If couldn't find such a charset uses UTF-8 instead.
   //
-  //= string final charset name $body is in like 'utf-8' or 'cp1251'
+  //= string    final charset name $body is in like 'utf-8' or 'cp1251'
   function convertCharsetOf(&$body) {
     $func = static::$utf8Convertor;
     $func or $func = array($this, 'ConvertUTF8');
@@ -1101,7 +1122,8 @@ class MiMeil {
   // by $prefix (which can be a directory or a file name - see SaveTo()).
   // If $prefix is null only returns that message string.
   //
-  //= string RFC message, null if couldn't write the file ($prefix isn't null)
+  //= string    RFC message
+  //= null      if couldn't write the file ($prefix isn't null)
   function saveEML($subject, array $headers, $body, $prefix = null) {
     $headers['To'] = isset($headers['To']) ? ((array) $headers['To']) : array();
     $headers['To'][] = static::normAddress( $this->to[0] );
