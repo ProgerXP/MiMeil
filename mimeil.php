@@ -64,6 +64,7 @@ class MiMeil {
   static $onEvent;
 
   // Routine to convert between UTF-8 and another character set.
+  //
   //= null      use ::ConvertUTF8()
   //= callable  ($charset, bool $toUTF8, $str, MiMeil $mail)
   static $utf8Convertor;
@@ -111,6 +112,7 @@ class MiMeil {
 
   // Headers listed here override standard (From, Content-Type, etc.) headers
   // created by MiMeil.
+  //
   //= array of string
   public $headers = array();
 
@@ -173,6 +175,7 @@ class MiMeil {
   protected $attachments = array();
 
   // Value for X-Priority and Importance headers: 0 (low), 1 (normal), 2 (high).
+  //
   //= integer   0-2
   protected $priority = 1;
 

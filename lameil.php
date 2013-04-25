@@ -6,6 +6,7 @@ class LaMeil extends MiMeil {
   //= null, Laravel\View
   public $view;
 
+  // Configures MiMeil (its event handler) so it becomes usable.
   static function initMiMeil() {
     $prefix = static::$eventPrefix;
 
@@ -18,18 +19,23 @@ class LaMeil extends MiMeil {
     // saves outgoing messages in a local folder if enabled in the config.
     static::listen('transmit', function (&$subject, &$headers, &$body, $mail) {
       if ($path = $mail->echoPath) {
-        $mail->SaveEML($subject, $headers, $body, rtrim($path, '\\/').'/');
+        $mail->saveEML($subject, $headers, $body, rtrim($path, '\\/').'/');
       }
     });
   }
 
+  // Makes $callback being called on MiMeil's event named $event (see MiMeil->fire()).
   static function listen($event, $callback) {
     Event::listen($event = static::$eventPrefix.$event, $callback);
     return $event;
   }
 
-  //= MiMeil on successful transmission, null on error
-  static function sendTo($recipients, $view, array $vars) {
+  // Composes mail's body from a view and dispatches it to $recipient. The view
+  // will receive additional $vars (see ::compose()).
+  //
+  //= MiMeil    on successful transmission
+  //= null      on error
+  static function sendTo($recipients, $view, array $vars = array()) {
     $mail = static::compose($view, $vars);
 
     if (!$mail->subject) {
@@ -39,7 +45,7 @@ class LaMeil extends MiMeil {
 
     $mail->to = is_array($recipients) ? $recipients : (array) $recipients;
 
-    if ($mail->Send()) {
+    if ($mail->send()) {
       return $mail;
     } else {
       Log::warn("MiMeil: cannot send e-mail message to ".join(', ', $mail->to).".");
@@ -47,28 +53,35 @@ class LaMeil extends MiMeil {
   }
 
   // Creates a blank message with HTML body set to rendered $view.
-  static function compose($view, array $vars) {
+  //
+  //= LaMeil
+  static function compose($view, array $vars = array()) {
     is_object($view) or $view = View::make($view);
 
     return static::make()
       ->initView( $view->with($vars) )
-      ->Body('html', trim($view->render()));
+      ->body('html', trim($view->render()));
   }
 
   // Creates a blank message.
+  //
+  //= LaMeil
   static function make($to = '', $subject = '') {
     return new static($to, $subject);
   }
 
   // Overriden MiMeil's MIME detector - using Laravel's native facility.
+  //
+  //= string
   function MimeByExt($ext, $default = true) {
-    $default = $default ? self::$defaultMIME : $ext;
+    $default = $default ? static::$defaultMIME : $ext;
     return File::mime($ext, $default);
   }
 
-  // Applies default settings from config/mail.php. Called by MiMeil->__construct().
+  // Applies default settings from config/mail.php.
+  // Is called by MiMeil->__construct().
   protected function init() {
-    foreach (Config::get('mimeil') as $prop => $value) {
+    foreach ((array) Config::get('mimeil') as $prop => $value) {
       $this->$prop = $value;
     }
   }
@@ -90,6 +103,11 @@ class LaMeil extends MiMeil {
   }
 
   // To be overriden in child classes.
+  //
+  // Can be used to add initial variables passed to a View being composed (see
+  // ::compose() and ->initView()).
+  //
+  //= null      return value is ignored
   protected function defaultViewDataTo(array &$data) { }
 
   // Attaches a file from local $path with $name visible to the recipient.
@@ -106,7 +124,7 @@ class LaMeil extends MiMeil {
         'related'         => false,
       );
 
-      $this->Attach($name, file_get_contents($path), $options['mime'],
+      $this->attach($name, file_get_contents($path), $options['mime'],
                     $options['headers'], $options['related']);
     }
 
@@ -115,8 +133,11 @@ class LaMeil extends MiMeil {
 
   // Similar to attachLocal() but marks the file as "related" - used in HTML
   // decoration and invisible in the attachment list of the mail agent. Unlike
-  // normal related attachments can be referred to with "cid:NAME", e.g.:
-  // attachRelatedLocal('...', 'name.png');  ->  <img src="cid:name.png">
+  // normal related attachments can be referred to with "cid:NAME".
+  //
+  //? attachRelatedLocal('/tmp/php3DC.tmp', 'a-pic.png');
+  //    // refer to this file in message's HTML body as <img src="cid:a-pic.png">
+  //
   function attachRelatedLocal($path, $name, $options = array()) {
     is_array($options) or $options = array('mime' => $options);
     $options += array('related' => true);
@@ -148,7 +169,8 @@ class LaMeil extends MiMeil {
     return $this;
   }
 
-  //= null if unassigned, Laravel\View
+  //= Laravel\View
+  //= null      if unassigned (logs a warning)
   function reqView() {
     if ($this->view) {
       return $this->view;
@@ -160,17 +182,9 @@ class LaMeil extends MiMeil {
   // Sets message subject both of this object and its associated view, if any.
   function subject($str) {
     $this->subject = $str;
+    // Reflect the change in assigned view's variables.
     $this->view and $this->view->subject = $this->subject;
     return $this;
-  }
-
-  function __call($name, $params) {
-    if (ltrim($name[0], 'a..z') === '') {
-      return call_user_func_array(array($this, ucfirst($name)), $params);
-    } else {
-      $msg = get_class($this)."->$name() has no instance method [$name].";
-      throw new BadMethodCallException($msg);
-    }
   }
 }
 
