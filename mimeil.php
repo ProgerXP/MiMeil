@@ -360,9 +360,11 @@ class MiMeil {
   //
   // $callback is a callable (string $event, array $callback).
   static function registerEventsUsing($callback) {
-    call_user_func($callback, 'send', array(__CLASS__, 'SetDefaultsTo'));
-    call_user_func($callback, 'send', array(__CLASS__, 'SetHeadersTo'));
-    call_user_func($callback, 'send', array(__CLASS__, 'Mail'));
+    $class = get_called_class();
+
+    call_user_func($callback, 'send', array($class, 'SetDefaultsTo'));
+    call_user_func($callback, 'send', array($class, 'SetHeadersTo'));
+    call_user_func($callback, 'send', array($class, 'Mail'));
 
     // standard $bodyEncoding's and $bodyCharset's are hardcoded in EncodeBody();
     // however, extra values can be added by simply prepending new hook to this
@@ -370,11 +372,11 @@ class MiMeil {
     // modify $body, add $header['Content-Transfer-Encoding'] and set
     // bodyEncoding/Charset to 'plain' - $body is not changed in this case and since
     // the header is already set it will not be replaced by EncodeBody() either.
-    call_user_func($callback, 'encode body', array(__CLASS__, 'EncodeBody'));
-    call_user_func($callback, 'encode attachment', array(__CLASS__, 'DenyAttachment'));
-    call_user_func($callback, 'encode attachment', array(__CLASS__, 'EncodeAttachment'));
+    call_user_func($callback, 'encode body', array($class, 'EncodeBody'));
+    call_user_func($callback, 'encode attachment', array($class, 'DenyAttachment'));
+    call_user_func($callback, 'encode attachment', array($class, 'EncodeAttachment'));
 
-    call_user_func($callback, 'transmit', array(__CLASS__, 'Transmit'));
+    call_user_func($callback, 'transmit', array($class, 'Transmit'));
   }
 
   /*---------------------------------------------------------------------
@@ -591,6 +593,8 @@ class MiMeil {
 
   // Is called immediately after constructing this object and setting initial
   // properties (recipients, subject and bodies). Use it when extending this class.
+  //
+  //= null    return value is ignored
   protected function init() { }
 
   // Initiates an event with given arguments ($args is autoconverted to array).
@@ -624,20 +628,24 @@ class MiMeil {
 
   // Gets or sets message body of specific MIME type.
   //
-  //? $this->body()             // get all bodies of all MIME types
+  //? $this->body()
   //    //=> array('html' => '...')
+  //    // get all bodies of all MIME types
   //
-  //? $this->body('html')       // get body of text/html MIME or null
+  //? $this->body('html')
   //    //=> '<html>...'
+  //    // get body of text/html MIME or null
   //
-  //? $this->body('html')       // the same as above with a static::$bodyTypes shortcut
+  //? $this->body('html')
+  //    // the same as above with a static::$bodyTypes shortcut
   //
-  //? $this->body('html', '<html>...')      // set body of text/html type
+  //? $this->body('html', '<html>...')
   //    //=> $this
+  //    // set body of text/html type
   //
   //? $this->body(array('html' => '...', 'text/plain' => '...'))
-  //    // set multiple bodies at once; removes all currently assigned bodies
   //    //=> $this
+  //    // set multiple bodies at once; removes all currently assigned bodies
   //
   function body($newOrType = array(), $body = null) {
     if (is_array($newOrType)) {
@@ -700,7 +708,8 @@ class MiMeil {
   // an array, otherwise returns that particular field which can be one of these:
   // name (string), mime (string), data (string), headers (array), isRelated (bool).
   //
-  //= mixed     attachment info according to $field, null if $name isn't attached
+  //= mixed     attachment info according to $field
+  //= null      if $name isn't attached
   function attachment($name, $field = 'data') {
     if (isset($this->attachments[$name])) {
       return $field ? $this->attachments[$name][$field] : $this->attachments[$name];
@@ -785,6 +794,7 @@ class MiMeil {
 
   // Initiates message transmission. Returns whatever was returned by the last
   // 'send' event listener (see also Fire()).
+  //
   //= hash      final normalized message info
   protected function dispatch($simulate) {
     $this->simulateSending = $simulate;
@@ -795,10 +805,11 @@ class MiMeil {
     return $this->mailed;
   }
 
-  // Attempts to determine MIME type by file extension $ext based on ::$mimeByExt.
-  // If unsuccessful returns either ::$defaultMIME ($default is true) or
-  // $ext ($default is false). Leading period is removed from $ext, if present.
-  // This method is static to allow overriding in child classes.
+  // Attempts to determine MIME type by file extension $ext based on ::$mimeByExt
+  // and if fails returns either ::$defaultMIME ($default is true) or $ext ($default
+  // is false). Leading period is removed from $ext, if present.
+  //
+  // This method isn't static to allow overriding it in child classes.
   //
   //= string
   function mimeByExt($ext, $default = true) {
@@ -818,7 +829,8 @@ class MiMeil {
   // Prepares this message for and initiates the final transmission.
   // Merges all headers and message bodies and attachments into one flat string
   // suitable for passing to the relay.
-  // Is meant for calling from 'send' event - see default DoMail() handler.
+  //
+  // Is meant for calling from 'send' event - see default ->doMail() handler.
   function doMail() {
     $name = $mime = null;
 
@@ -867,7 +879,7 @@ class MiMeil {
     $this->mailed['message'] = &$data;
 
     // Give prepared message to the relay.
-    $this->fire('transmit', array(&$subject, &$headers, &$data, $this));
+    return $this->fire('transmit', array(&$subject, &$headers, &$data, $this));
   }
 
   // Removes message bodies of unallowed MIME types. Constructs plain/text body
@@ -973,19 +985,19 @@ class MiMeil {
 
     $joined = '';
 
-      foreach ($footers as $footer) {
-        $footer = &$footer[$type];
+    foreach ($footers as $footer) {
+      $footer = &$footer[$type];
 
-        if (isset($footer)) {
-          $footer = (array) $footer;
-          $footer += array('', '');
-          list($text, $classes) = $footer;
+      if (isset($footer)) {
+        $footer = (array) $footer;
+        $footer += array('', '');
+        list($text, $classes) = $footer;
 
-          $classes = "$classes" === '' ? 'mimeil-footer' : "mimeil-footer $classes";
-          $pf = $useHTML ? sprintf($prefix, $classes) : $prefix;
-          $joined .= $pf.$text.$suffix;
-        }
+        $classes = "$classes" === '' ? 'mimeil-footer' : "mimeil-footer $classes";
+        $pf = $useHTML ? sprintf($prefix, $classes) : $prefix;
+        $joined .= $pf.$text.$suffix;
       }
+    }
 
     if ($joined !== '') {
       if ($useHTML) {
