@@ -18,5 +18,5 @@ php artisan bundle:install mimeil
 After this:
 
 * Add it to your `application/bundles.php`; if you use `'auto' => true` class aliases will be created automatically.
-* Create `application/config/mimeil.php` to override default values used when building/sending an e-mail. Keys are names of instance properties of `MiMeil`.
+* Create `application/config/mimeil.php` (use `config-sample.php` as a template) to override default values used when building/sending an e-mail. Keys are names of instance properties of `MiMeil`.
 * Use `LaMeil` class instead of `MiMeil` if you want to have a convenient Laravel-oriented layer that, for example, logs errors and uses your config files.
