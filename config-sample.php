@@ -35,7 +35,7 @@ return array(
   // Just for code beauty.
   'sortHeaders'           => true,
   // sendmail's command-line parameters.
-  'params'                => true,
+  'params'                => '',
 
   // If true messages won't be actually sent.
   'simulateSending'       => Request::is_env('local'),
