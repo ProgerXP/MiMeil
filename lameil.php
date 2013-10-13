@@ -44,8 +44,9 @@ class LaMeil extends MiMeil {
     }
 
     $mail->to = is_array($recipients) ? $recipients : (array) $recipients;
+    $func = $mail->config('simulate') ? 'simulateSending' : 'send';
 
-    if ($mail->send()) {
+    if ($mail->$func()) {
       return $mail;
     } else {
       Log::warn("MiMeil: cannot send e-mail message to ".join(', ', $mail->to).".");
@@ -81,9 +82,13 @@ class LaMeil extends MiMeil {
   // Applies default settings from config/mail.php.
   // Is called by MiMeil->__construct().
   protected function init() {
-    foreach ((array) Config::get('mimeil') as $prop => $value) {
+    foreach ((array) $this->config() as $prop => $value) {
       $this->$prop = $value;
     }
+  }
+
+  function config($key = null) {
+    return $key ? Config::get("mimeil.$key") : Config::get('mimeil');
   }
 
   // Sets initial view variables regarding message composition to $view. These are

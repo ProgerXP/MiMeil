@@ -38,8 +38,8 @@ return array(
   'params'                => '',
 
   // If true messages won't be actually sent.
-  'simulateSending'       => Request::is_env('local'),
+  'simulate'              => Request::is_env('local'),
   // If set to a string outgoing .eml's are dumped on this path (useful in
-  // combination with 'simulateSending'.
+  // combination with 'simulate'.
   'echoPath'              => Request::is_env('local') ? path('storage').'mail' : false,
 );
