@@ -26,12 +26,13 @@ return array(
   // Always use the first charset name in 'bodyCharsets'.
   'forceBodyCharset'      => false,
   'makeTextBodyFromHTML'  => true,
+  'inlineCSS'             => null,
   'textBodyFormat'        => 'flowed',
 
   // For message headers only.
   'headerEOLN'            => "\n",
   // For message body.
-  'eoln'                  => "\r\n",
+  'eoln'                  => "\n",
   // Just for code beauty.
   'sortHeaders'           => true,
   // sendmail's command-line parameters.
