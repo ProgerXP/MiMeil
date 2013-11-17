@@ -76,6 +76,20 @@ class MiMeil {
     //= bool    if set and if message contains only HTML body MiMeil will automaticalky
     //          create plain text version by removing HTML tags and entities
     'makeTextBodyFromHTML' => true,
+    // This option, if enabled (true or null), requires inlinestyle/inlinestyle
+    // Composer package to be installed. An easy way to do this is via terminal:
+    //
+    // % cd /path/to/mimeil     # with mimeil.php
+    // % echo '{"require":{"inlinestyle/inlinestyle":"1.0"}}' >composer.json
+    // % curl -sS https://getcomposer.org/installer | php
+    // % php composer.phar install
+    //
+    // The above should result in vendor/ folder being created alongside with mimeil.php.
+    // This is enough for inlineCSS to work.
+    //
+    //= bool    if set will inline <style> into <tag style="..."> - requires vendor/autoload.php
+    //= null    works as bool true if the library file exists or as false otherwise
+    'inlineCSS' => null,
     //= string  Content-Transfer-Encoding to use for outgoing messages
     'bodyEncoding' => 'base64',
     //= array of string     character set identifiers to sequentially try and encode
@@ -137,6 +151,7 @@ class MiMeil {
 
   // See ::$defaults property above for the description of these options.
   public $makeTextBodyFromHTML;
+  public $inlineCSS;
   public $allowedBodyMIME, $textBodyFormat;
   public $allowedAttachments;
   public $headerEOLN, $sortHeaders;
@@ -194,6 +209,16 @@ class MiMeil {
   //= string
   static function chunkBase64($str) {
     return chunk_split(base64_encode($str));
+  }
+
+  // Removes <?xml ...? > declaration from $xml (which might be XHTML/HTML), if
+  // present. Useful for cleaning up DOMDocument->saveHTML/XML(). See ->inlineCSS().
+  //
+  //= string
+  static function cutXmlDecl($xml) {
+    // DOMDocument will place <?...? > either in front of document or after <!DOCTYPE>.
+    $regexp = '~(<!DOCTYPE[^>]*>)?\s*<\?xml [^>]*>~iu';
+    return preg_replace(trim($regexp), '\1', $xml);
   }
 
   // Turns a UTF-8 string (such as a subject line) into a 7-bit ASCII safe to
@@ -372,7 +397,9 @@ class MiMeil {
     call_user_func($callback, 'send', array($class, 'SetHeadersTo'));
     call_user_func($callback, 'send', array($class, 'Mail'));
 
-    // standard $bodyEncoding's and $bodyCharset's are hardcoded in EncodeBody();
+    call_user_func($callback, 'prepare body', array($class, 'InlineCSS'));
+
+    // Standard $bodyEncoding's and $bodyCharset's are hardcoded in EncodeBody();
     // however, extra values can be added by simply prepending new hook to this
     // and checking $email->bodyEncoding/Charset - if they match the hook can
     // modify $body, add $header['Content-Transfer-Encoding'] and set
@@ -461,6 +488,34 @@ class MiMeil {
   // Initiates message sending on given $email message.
   static function Mail(MiMeil $email) {
     $email->doMail();
+  }
+
+  // Converts <style> rules into <tag style="..."> since the majority of web
+  // interfaces (notably Gmail) don't understand <style> and <link> at all.
+  static function InlineCSS(&$body, &$type, array &$headers, MiMeil $email) {
+    if ($type === 'html' and $email->inlineCSS !== false) {
+      $lib = __DIR__.'/vendor/autoload.php';
+
+      if (!is_file($lib)) {
+        if ($email->inlineCSS === true) {
+          throw new MiMeilError('MiMeil requires inlinestyle/inlinestyle for inline'.
+                                ' CSS. Install it via Composer (getcomposer.org).');
+        } else {
+          return;
+        }
+      }
+
+      require_once $lib;
+
+      $body = '<?xml encoding="UTF-8"> '.static::cutXmlDecl($body);
+      $inline = new InlineStyle\InlineStyle($body);
+      $inline->applyStylesheet($inline->extractStylesheets());
+
+      // Removing XML declaration because target encoding might be different from
+      // UTF-8 (see $this->bodyCharsets). Plus I don't think XHTML in use these days.
+      $body = static::cutXmlDecl($inline->getHTML());
+      $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'utf-8');
+    }
   }
 
   // Encodes message $body as $type. See also ::$bodyEncoding property.
