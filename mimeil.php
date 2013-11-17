@@ -144,8 +144,11 @@ class MiMeil {
   //= string    custom command-line parameters for sendmail (last argument of PHP's mail())
   public $params;
 
-  //= string    line feed sequence used outside the headers preface
-  public $eoln = "\r\n";
+  // Line feed sequence used outside the headers preface. Not recommended to use
+  // different line markers for $eoln and $headerEOLN - confuses some mail clients.
+  //
+  //= string
+  public $eoln = "\n";
 
   // If set and if this message doesn't contain a text/html body all multipart/related
   // attachments are discarded. Such attachments are normally used to embed media
