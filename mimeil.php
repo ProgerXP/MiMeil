@@ -514,7 +514,7 @@ class MiMeil {
       // Removing XML declaration because target encoding might be different from
       // UTF-8 (see $this->bodyCharsets). Plus I don't think XHTML in use these days.
       $body = static::cutXmlDecl($inline->getHTML());
-      $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'utf-8');
+      $body = html_entity_decode($body, ENT_QUOTES, 'utf-8');
     }
   }
 
